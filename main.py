@@ -134,7 +134,7 @@ def format_event_message(event):
             time_str = dt
         
         
-        msg = f"<b> BLOCKED ALERT</b>\n"
+        msg = f"<b></b>"
         msg += f"<b>Важность:</b> {severity_text}\n"
         msg += f"<b>Тип:</b> {event.get('description', '')}\n"
         
