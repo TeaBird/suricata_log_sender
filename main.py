@@ -177,13 +177,13 @@ def check_new_events(last_event_id):
                    '🟡' if 'средн' in severity.lower() else '⚪'
             
             message = f"{emoji} <b>НОВОЕ СОБЫТИЕ БЕЗОПАСНОСТИ</b>\n\n"
-            message += f"<b>🕒 Время:</b> {latest_row.get('date_time', '')}\n"
-            message += f"<b>⚠️ Уровень:</b> {severity}\n"
-            message += f"<b>📝 Описание:</b> {latest_row.get('description', '')}\n"
-            message += f"<b>📍 Источник:</b> {latest_row.get('source_ip', '')}:{latest_row.get('source_port', '')}\n"
-            message += f"<b>🌍 Страна:</b> {latest_row.get('source_country', '')}\n"
-            message += f"<b>🎯 Назначение:</b> {latest_row.get('destination_ip', '')}:{latest_row.get('destination_port', '')}\n"
-            message += f"<b>📡 Протокол:</b> {latest_row.get('protocol', '')}\n"
+            message += f"<b> Время:</b> {latest_row.get('date_time', '')}\n"
+            message += f"<b> Уровень:</b> {severity}\n"
+            message += f"<b> Описание:</b> {latest_row.get('description', '')}\n"
+            message += f"<b> Источник:</b> {latest_row.get('source_ip', '')}:{latest_row.get('source_port', '')}\n"
+            message += f"<b> Страна:</b> {latest_row.get('source_country', '')}\n"
+            message += f"<b> Назначение:</b> {latest_row.get('destination_ip', '')}:{latest_row.get('destination_port', '')}\n"
+            message += f"<b> Протокол:</b> {latest_row.get('protocol', '')}\n"
             message += f"<code>ID: {event_id}</code>"
             
             if send_telegram_message(message):
@@ -216,14 +216,14 @@ def main():
         return
     
     logging.info("=" * 60)
-    logging.info("🚀 ЗАПУСК МОНИТОРА СОБЫТИЙ БЕЗОПАСНОСТИ")
-    logging.info(f"📱 Chat ID: {CHAT_ID}")
-    logging.info(f"🌐 URL: {CSV_DOWNLOAD_URL}")
-    logging.info(f"⏱ Интервал: {CHECK_INTERVAL} сек")
+    logging.info(" ЗАПУСК МОНИТОРА СОБЫТИЙ БЕЗОПАСНОСТИ")
+    logging.info(f" Chat ID: {CHAT_ID}")
+    logging.info(f" URL: {CSV_DOWNLOAD_URL}")
+    logging.info(f" Интервал: {CHECK_INTERVAL} сек")
     logging.info("=" * 60)
     
     # Отправляем стартовое сообщение
-    send_telegram_message("🟢 <b>Монитор событий безопасности запущен</b>\nСистема начала мониторинг.")
+    send_telegram_message("<b>Монитор событий безопасности запущен</b>\nСистема начала мониторинг.")
     
     last_event_id = None
     
