@@ -12,15 +12,13 @@ print("=" * 70)
 print("МОНИТОР СОБЫТИЙ С ТОКОНОМ IDECO")
 print("=" * 70)
 
-# Ваши данные
-BOT_TOKEN = "8286920710:AAHgOzxIRaOsBLRs5kK58Cmadns3CUvDDEs"
-CHAT_ID = "-5039280407"
-BASE_URL = "https://192.168.9.17:8443"
+#чувствительные данные
+BOT_TOKEN = ""
+CHAT_ID = ""
+BASE_URL = ""
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
-
-# Ваш токен (замените если нужно)
-IDECO_TOKEN = "__Secure-ideco-0702a658-0af4-4ef0-be9a-ff13711ea571"
-SESSION_TOKEN = "3ae75413-0def-4257-9974-75920722ee1e:1768557004"
+IDECO_TOKEN = ""
+SESSION_TOKEN = ""
 
 def send_telegram(msg):
     try:
@@ -39,7 +37,7 @@ def test_with_token():
     session = requests.Session()
     session.verify = False
     
-    # Добавляем куки/токены
+    # добавляем куки/токены
     cookies = {
         IDECO_TOKEN.split('=')[0] if '=' in IDECO_TOKEN else IDECO_TOKEN: 
         IDECO_TOKEN.split('=')[1] if '=' in IDECO_TOKEN else SESSION_TOKEN
@@ -48,7 +46,7 @@ def test_with_token():
     for key, value in cookies.items():
         session.cookies.set(key.strip(), value.strip())
     
-    # Также пробуем как заголовок
+    # также пробуем как заголовок
     headers = {
         'Authorization': f'Bearer {SESSION_TOKEN}',
         'X-Auth-Token': SESSION_TOKEN,
@@ -57,7 +55,7 @@ def test_with_token():
     
     print(" Тестирую доступ с токеном...")
     
-    # Пробуем разные варианты
+    # пробуем разные варианты
     test_cases = [
         {"method": "cookies_only", "session": session, "headers": {}},
         {"method": "with_auth_header", "session": session, "headers": {'Authorization': f'Bearer {SESSION_TOKEN}'}},
@@ -71,7 +69,7 @@ def test_with_token():
             test_session = test['session']
             test_session.verify = False
             
-            # Добавляем заголовки
+            # добавляем заголовки
             for key, value in test['headers'].items():
                 test_session.headers[key] = value
             
@@ -82,7 +80,7 @@ def test_with_token():
                 try:
                     data = response.json()
                     events = data.get('data', [])
-                    print(f"    ✓ УСПЕХ! Событий: {len(events)}")
+                    print(f" УСПЕХ! Событий: {len(events)}")
                     
                     if events:
                         print(f"    Пример первого события:")
@@ -106,11 +104,10 @@ def test_with_token():
 def get_severity_text(severity_code):
     """Преобразование кода важности в текст"""
     severity_map = {
-        1: " КРИТИЧЕСКИЙ",
-        2: " ВЫСОКИЙ", 
-        3: " СРЕДНИЙ",
-        4: " НИЗКИЙ",
-        5: " НЕЗНАЧИТЕЛЬНЫЙ"
+        1: " Критичный",
+        2: " Опасный", 
+        3: " Незначительный",
+        4: " Информационный"
     }
     return severity_map.get(severity_code, f"Уровень {severity_code}")
 
