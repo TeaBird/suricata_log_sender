@@ -6,15 +6,9 @@ import sys
 from datetime import datetime
 import urllib3
 
-urllib3.disable_warnings()
-
-print("=" * 70)
-print("МОНИТОР СОБЫТИЙ С ТОКОНОМ IDECO")
-print("=" * 70)
-
 BOT_TOKEN = ""
 CHAT_ID = ""
-BASE_URL = "https://192.168.9.17:8443"
+BASE_URL = ""
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
 
 IDECO_TOKEN = ""
@@ -24,6 +18,7 @@ NOISY_ALERTS = {
     "Windows Telemetry": "Телеметрия Windows",
     "IP blocklist": "Черный список IP-адресов",
 }
+
 def is_noisy_alert(event_description):
     desc = str(event_description).lower()
     for noisy_key in NOISY_ALERTS.keys():
@@ -60,8 +55,6 @@ def test_with_token():
         'X-Auth-Token': SESSION_TOKEN,
         'Cookie': f'{IDECO_TOKEN}={SESSION_TOKEN}' if '=' not in IDECO_TOKEN else IDECO_TOKEN
     }
-    
-    print(" Тестирую доступ с токеном...")
     
     test_cases = [
         {"method": "cookies_only", "session": session, "headers": {}},
@@ -171,7 +164,7 @@ def format_event_message(event):
         return f"<b>BLOCKED ALERT</b>\nID: {event.get('sid', 'N/A')}"
 
 def main():
-    print(f"Использую токен: {IDECO_TOKEN}")
+    print(f"Ттокен: {IDECO_TOKEN}")
     print(f"Значение: {SESSION_TOKEN[:20]}...")
     print(f"\n NOISY ALERTS (игнорирую):")
     for noisy_key, noisy_desc in NOISY_ALERTS.items():
@@ -210,7 +203,7 @@ def main():
             params = {
                 'filter': '[{"items":[{"column_name":"date_time","operator":"date_range","value":["hour"]}],"link_operator":"and"}]',
                 'sort': '[{"field":"date_time","direction":"desc"}]',
-                'limit': 25  # Больше событий для фильтрации
+                'limit': 25  # больше событий для фильтрации
             }
             
             try:
@@ -319,7 +312,6 @@ def main():
             except Exception as e:
                 print(f" Ошибка запроса: {e}")
             
-            # Ожидание 60 секунд
             print("\n Следующая проверка через 60 сек...")
             for i in range(60, 0, -1):
                 sys.stdout.write(f"\rОжидание: {i:3d} сек.")
