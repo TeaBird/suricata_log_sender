@@ -12,13 +12,24 @@ print("=" * 70)
 print("МОНИТОР СОБЫТИЙ С ТОКОНОМ IDECO")
 print("=" * 70)
 
-#чувствительные данные
 BOT_TOKEN = ""
 CHAT_ID = ""
-BASE_URL = ""
+BASE_URL = "https://192.168.9.17:8443"
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
+
 IDECO_TOKEN = ""
 SESSION_TOKEN = ""
+
+NOISY_ALERTS = {
+    "Windows Telemetry": "Телеметрия Windows",
+    "IP blocklist": "Черный список IP-адресов",
+}
+def is_noisy_alert(event_description):
+    desc = str(event_description).lower()
+    for noisy_key in NOISY_ALERTS.keys():
+        if noisy_key.lower() in desc:
+            return True
+    return False
 
 def send_telegram(msg):
     try:
@@ -33,11 +44,9 @@ def send_telegram(msg):
         return False
 
 def test_with_token():
-    """Тестируем доступ с токеном"""
     session = requests.Session()
     session.verify = False
     
-    # добавляем куки/токены
     cookies = {
         IDECO_TOKEN.split('=')[0] if '=' in IDECO_TOKEN else IDECO_TOKEN: 
         IDECO_TOKEN.split('=')[1] if '=' in IDECO_TOKEN else SESSION_TOKEN
@@ -46,7 +55,6 @@ def test_with_token():
     for key, value in cookies.items():
         session.cookies.set(key.strip(), value.strip())
     
-    # также пробуем как заголовок
     headers = {
         'Authorization': f'Bearer {SESSION_TOKEN}',
         'X-Auth-Token': SESSION_TOKEN,
@@ -55,7 +63,6 @@ def test_with_token():
     
     print(" Тестирую доступ с токеном...")
     
-    # пробуем разные варианты
     test_cases = [
         {"method": "cookies_only", "session": session, "headers": {}},
         {"method": "with_auth_header", "session": session, "headers": {'Authorization': f'Bearer {SESSION_TOKEN}'}},
@@ -69,7 +76,6 @@ def test_with_token():
             test_session = test['session']
             test_session.verify = False
             
-            # добавляем заголовки
             for key, value in test['headers'].items():
                 test_session.headers[key] = value
             
@@ -80,14 +86,16 @@ def test_with_token():
                 try:
                     data = response.json()
                     events = data.get('data', [])
-                    print(f" УСПЕХ! Событий: {len(events)}")
+                    print(f"     УСПЕХ! Событий: {len(events)}")
                     
                     if events:
                         print(f"    Пример первого события:")
                         event = events[0]
-                        print(f"      Тип: {event.get('description', 'N/A')}")
+                        description = event.get('description', 'N/A')
+                        is_noisy = is_noisy_alert(description)
+                        print(f"      Тип: {description}")
+                        print(f"      Noisy alert: {'ДА' if is_noisy else 'НЕТ'}")
                         print(f"      Результат: {event.get('result', 'N/A')}")
-                        print(f"      Важность: {event.get('severity', 'N/A')}")
                     
                     return test_session, test['headers'], True
                     
@@ -102,7 +110,6 @@ def test_with_token():
     return None, {}, False
 
 def get_severity_text(severity_code):
-    """Преобразование кода важности в текст"""
     severity_map = {
         1: " Критичный",
         2: " Опасный", 
@@ -112,30 +119,29 @@ def get_severity_text(severity_code):
     return severity_map.get(severity_code, f"Уровень {severity_code}")
 
 def format_event_message(event):
-    """Форматирование события для Telegram - ТОЛЬКО blocked события"""
     try:
-        # Проверяем, что событие blocked
         result = event.get('result', '').lower()
         if result != 'blocked':
-            return None  # Пропускаем не-blocked события
+            return None
         
-        # Получаем важность
+        description = event.get('description', '')
+        if is_noisy_alert(description):
+            return None
+        
         severity_code = event.get('severity', 0)
         severity_text = get_severity_text(severity_code)
         
-        # Форматируем время (YYYYMMDDHHMMSS → HH:MM:SS)
         dt = str(event.get('date_time', ''))
         if len(dt) == 14:
             time_str = f"{dt[8:10]}:{dt[10:12]}:{dt[12:14]}"
         else:
             time_str = dt
         
-        
-        msg = f"<b></b>"
+        msg = f"<b> BLOCKED ALERT</b>\n"
         msg += f"<b>Важность:</b> {severity_text}\n"
-        msg += f"<b>Тип:</b> {event.get('description', '')}\n"
+        msg += f"<b>Тип:</b> {description}\n"
+        msg += f"<b>Время:</b> {time_str}\n"
         
-        # Источник
         source_ip = event.get('source_ip', '')
         source_port = event.get('source_port', '')
         source_country = event.get('source_country', '')
@@ -145,12 +151,15 @@ def format_event_message(event):
         if source_country:
             msg += f"  • Страна: {source_country}\n"
         
-        # Назначение
         dest_ip = event.get('destination_ip', '')
         dest_port = event.get('destination_port', '')
         dest_country = event.get('destination_country', '')
         
-                
+        msg += f"<b>Назначение:</b>\n"
+        msg += f"  • IP: {dest_ip}:{dest_port}\n"
+        if dest_country:
+            msg += f"  • Страна: {dest_country}\n"
+        
         security_event = event.get('security_event', '')
         if security_event:
             msg += f"<b>Событие:</b> {security_event}"
@@ -164,15 +173,16 @@ def format_event_message(event):
 def main():
     print(f"Использую токен: {IDECO_TOKEN}")
     print(f"Значение: {SESSION_TOKEN[:20]}...")
+    print(f"\n NOISY ALERTS (игнорирую):")
+    for noisy_key, noisy_desc in NOISY_ALERTS.items():
+        print(f"  • {noisy_key}")
     
-    # Тест Telegram
-    print("\nТестирую Telegram...")
-    if send_telegram(" Запускаю монитор с токеном IDECO (только blocked события)"):
-        print("✓ Telegram работает")
+    print("\n Тестирую Telegram...")
+    if send_telegram("start"):
+        print(" Telegram работает")
     else:
-        print("✗ Проблема с Telegram")
+        print(" Проблема с Telegram")
     
-    # Тест с токеном
     session, headers, success = test_with_token()
     
     if not success:
@@ -186,9 +196,9 @@ def main():
     print(" ПОДКЛЮЧЕНИЕ УСПЕШНО! НАЧИНАЮ МОНИТОРИНГ...")
     print("="*70)
     
-    send_telegram(" Успешное подключение к IDECO!\nМониторю только BLOCKED события...")
+    send_telegram("start successful")
     
-    last_events = set()  # Храним ID последних событий
+    last_events = set()
     
     try:
         cycle = 0
@@ -197,15 +207,13 @@ def main():
             current_time = datetime.now().strftime("%H:%M:%S")
             print(f"\n[{current_time}] Цикл #{cycle}")
             
-            # Параметры запроса (как в интерфейсе)
             params = {
                 'filter': '[{"items":[{"column_name":"date_time","operator":"date_range","value":["hour"]}],"link_operator":"and"}]',
                 'sort': '[{"field":"date_time","direction":"desc"}]',
-                'limit': 20  # Больше событий для фильтрации
+                'limit': 25  # Больше событий для фильтрации
             }
             
             try:
-                # Делаем запрос
                 response = session.get(
                     EVENTS_URL,
                     params=params,
@@ -217,80 +225,99 @@ def main():
                     data = response.json()
                     all_events = data.get('data', [])
                     
-                    # Фильтруем только blocked события
                     blocked_events = [e for e in all_events if e.get('result', '').lower() == 'blocked']
+                    
+                    filtered_blocked_events = []
+                    noisy_count = 0
+                    
+                    for event in blocked_events:
+                        description = event.get('description', '')
+                        if is_noisy_alert(description):
+                            noisy_count += 1
+                            print(f"   Noisy alert: {description}")
+                        else:
+                            filtered_blocked_events.append(event)
                     
                     print(f" Всего событий: {len(all_events)}")
                     print(f" BLOCKED событий: {len(blocked_events)}")
+                    print(f" Noisy alerts (игнорировано): {noisy_count}")
+                    print(f" Отправляемых BLOCKED событий: {len(filtered_blocked_events)}")
                     
-                    if blocked_events:
-                        # Собираем ID текущих BLOCKED событий
+                    if filtered_blocked_events:
                         current_event_ids = set()
-                        for event in blocked_events:
+                        for event in filtered_blocked_events:
                             sid = event.get('sid', '')
                             eid = event.get('id', '')[:8]
                             if sid:
                                 current_event_ids.add(f"{sid}_{eid}")
                         
-                        # Находим новые BLOCKED события
                         new_ids = current_event_ids - last_events
                         
                         if new_ids:
-                            print(f" Найдено новых BLOCKED событий: {len(new_ids)}")
+                            print(f" Найдено новых BLOCKED событий (не noisy): {len(new_ids)}")
                             
-                            # Для каждого нового BLOCKED события
                             blocked_count = 0
                             for new_id in new_ids:
-                                # Находим полные данные события
-                                for event in blocked_events:
+                                for event in filtered_blocked_events:
                                     sid = event.get('sid', '')
                                     eid = event.get('id', '')[:8]
                                     if f"{sid}_{eid}" == new_id:
-                                        # Формируем сообщение
                                         msg = format_event_message(event)
                                         
-                                        if msg:  # Проверяем что сообщение создано (только для blocked)
-                                            # Отправляем
+                                        if msg:  # Проверяем что сообщение создано (только для blocked и не noisy)
                                             if send_telegram(msg):
-                                                print(f"  ✓ Отправлено BLOCKED: {new_id}")
-                                                print(f"    Важность: {event.get('severity', 'N/A')}")
-                                                print(f"    Тип: {event.get('description', '')}")
+                                                print(f"   Отправлено BLOCKED: {new_id}")
+                                                print(f"   Тип: {event.get('description', '')}")
+                                                print(f"   Важность: {get_severity_text(event.get('severity', 0))}")
                                                 blocked_count += 1
                                             else:
-                                                print(f"  ✗ Ошибка отправки: {new_id}")
+                                                print(f"   Ошибка отправки: {new_id}")
                                         break
                             
                             if blocked_count > 0:
-                                print(f"  Всего отправлено BLOCKED уведомлений: {blocked_count}")
+                                print(f"   Всего отправлено BLOCKED уведомлений: {blocked_count}")
                             
-                            # Обновляем список последних событий
                             last_events = current_event_ids
                         else:
-                            print(" Новых BLOCKED событий нет")
+                            print(" Новых BLOCKED событий (не noisy) нет")
                             
-                        # Показываем последнее BLOCKED событие для информации
-                        if blocked_events:
-                            latest = blocked_events[0]
-                            print(f"  Последнее BLOCKED: {latest.get('description', '')}")
-                            print(f"    Важность: {latest.get('severity', 'N/A')}")
-                            print(f"    {latest.get('source_ip', '')} → {latest.get('destination_ip', '')}")
+                        if noisy_count > 0:
+                            print(f"\n Статистика noisy alerts за цикл:")
+            
+                            noisy_by_type = {}
+                            for event in blocked_events:
+                                if is_noisy_alert(event.get('description', '')):
+                                    desc = event.get('description', 'Unknown')
+                                    noisy_by_type[desc] = noisy_by_type.get(desc, 0) + 1
+                            
+                            for desc, count in noisy_by_type.items():
+                                print(f"  • {desc}: {count} событий")
+                        
+                        if filtered_blocked_events:
+                            latest = filtered_blocked_events[0]
+                            print(f"\n Последнее BLOCKED (не noisy):")
+                            print(f"  Тип: {latest.get('description', '')}")
+                            print(f"  Важность: {get_severity_text(latest.get('severity', 0))}")
+                            print(f"  IP: {latest.get('source_ip', '')} → {latest.get('destination_ip', '')}")
                         
                     else:
-                        print(" Нет BLOCKED событий за последний час")
+                        print(" Нет BLOCKED событий за последний час (после фильтрации noisy)")
                         
-                        # Но покажем последнее событие любого типа для информации
                         if all_events:
                             latest_all = all_events[0]
-                            print(f"  Последнее событие (любое): {latest_all.get('description', '')}")
-                            print(f"    Результат: {latest_all.get('result', 'N/A')}")
-                            print(f"    Важность: {latest_all.get('severity', 'N/A')}")
+                            description = latest_all.get('description', 'N/A')
+                            is_noisy = is_noisy_alert(description)
+                            print(f"\n Последнее событие (любое):")
+                            print(f"  Тип: {description}")
+                            print(f"  Результат: {latest_all.get('result', 'N/A')}")
+                            print(f"  Noisy alert: {'ДА' if is_noisy else 'НЕТ'}")
                         
                 else:
-                    print(f"✗ Ошибка HTTP: {response.status_code}")
+                    print(f" Ошибка HTTP: {response.status_code}")
                     print(f"  Ответ: {response.text[:200]}")
                     
             except Exception as e:
-                print(f"✗ Ошибка запроса: {e}")
+                print(f" Ошибка запроса: {e}")
             
             # Ожидание 60 секунд
             print("\n Следующая проверка через 60 сек...")
@@ -302,7 +329,7 @@ def main():
             
     except KeyboardInterrupt:
         print("\n\n Остановка по запросу пользователя...")
-        send_telegram(" Монитор остановлен")
+        send_telegram("script stoped")
     except Exception as e:
         print(f"\n\n Критическая ошибка: {e}")
         send_telegram(f" Аварийная остановка: {str(e)[:100]}")
