@@ -1,9 +1,0 @@
-[build]
-builder = "nixpacks"
-buildCommand = "pip install -r requirements.txt"
-
-[deploy]
-startCommand = "python main.py"
-
-[build.environment]
-PYTHON_VERSION = "3.11"
