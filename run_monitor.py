@@ -1,13 +1,13 @@
-import requests
 import time
 import json
 import os
 import sys
 from datetime import datetime
 import urllib3
+import requests
 
 print("=" * 70)
-print("МОНИТОР СОБЫТИЙ С ТОКЕНОМ IDECO")
+print("монитор событий IDECO")
 print("=" * 70)
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
@@ -17,6 +17,8 @@ EVENTS_URL = f"{BASE_URL}/ips/alerts"
 
 IDECO_TOKEN = os.environ.get("IDECO_TOKEN") 
 SESSION_TOKEN = os.environ.get("SESSION_TOKEN")
+IDECO_USERNAME = os.environ.get("IDECO_USERNAME")
+IDECO_PASSWORD = os.environ.get("IDECO_PASSWORD")
 
 
 NOISY_ALERTS = {
@@ -45,9 +47,83 @@ def send_telegram(msg):
     except:
         return False
 
+
+def login_and_update_session(session):
+    """
+    Пытается залогиниться в IDECO по логину/паролю и обновить cookie.
+    Требует IDECO_USERNAME и IDECO_PASSWORD в переменных окружения.
+    """
+    global IDECO_TOKEN, SESSION_TOKEN
+
+    if not IDECO_USERNAME or not IDECO_PASSWORD:
+        print(" Нет IDECO_USERNAME/IDECO_PASSWORD для автоматического логина.")
+        return False
+
+    login_url = os.environ.get("IDECO_LOGIN_URL", f"{BASE_URL}/auth/login")
+
+    print(f" Пытаюсь залогиниться в IDECO по адресу: {login_url}")
+
+    try:
+        # Большинство форм логина IDECO принимают обычный form-data (application/x-www-form-urlencoded)
+        payload = {
+            "username": IDECO_USERNAME,
+            "password": IDECO_PASSWORD,
+        }
+
+        response = session.post(login_url, data=payload, timeout=15, verify=False)
+
+        if response.status_code not in (200, 302):
+            print(f" Логин не удался, HTTP {response.status_code}")
+            return False
+
+        # Ищем cookie вида __Secure-ideco-***=***:***
+        cookies_dict = session.cookies.get_dict()
+        new_name = None
+        new_value = None
+
+        for name, value in cookies_dict.items():
+            if name.startswith("__Secure-ideco"):
+                new_name = name
+                new_value = value
+                break
+
+        if not new_name or not new_value:
+            print(" Не удалось найти ideco-cookie после логина.")
+            return False
+
+        IDECO_TOKEN = new_name
+        SESSION_TOKEN = new_value
+
+        print(f" Успешный логин, cookie обновлена: {IDECO_TOKEN}=(скрыто)")
+        return True
+
+    except Exception as e:
+        print(f" Ошибка логина: {e}")
+        return False
+
+
+def build_auth_headers():
+    """
+    Собирает заголовки авторизации из текущих значений SESSION_TOKEN и IDECO_TOKEN.
+    """
+    headers = {}
+    if SESSION_TOKEN:
+        headers["Authorization"] = f"Bearer {SESSION_TOKEN}"
+        headers["X-Auth-Token"] = SESSION_TOKEN
+    if IDECO_TOKEN and SESSION_TOKEN:
+        headers["Cookie"] = f"{IDECO_TOKEN}={SESSION_TOKEN}"
+    return headers
+
 def test_with_token():
     session = requests.Session()
     session.verify = False
+
+    # Если явных cookie нет, пробуем залогиниться по логину/паролю
+    if not IDECO_TOKEN or not SESSION_TOKEN:
+        print(" IDECO_TOKEN/SESSION_TOKEN не заданы, пробую логин по логину/паролю...")
+        if not login_and_update_session(session):
+            print(" Не удалось получить токены через логин.")
+            return None, {}, False
     
     cookies = {
         IDECO_TOKEN.split('=')[0] if '=' in IDECO_TOKEN else IDECO_TOKEN: 
@@ -57,11 +133,7 @@ def test_with_token():
     for key, value in cookies.items():
         session.cookies.set(key.strip(), value.strip())
     
-    headers = {
-        'Authorization': f'Bearer {SESSION_TOKEN}',
-        'X-Auth-Token': SESSION_TOKEN,
-        'Cookie': f'{IDECO_TOKEN}={SESSION_TOKEN}' if '=' not in IDECO_TOKEN else IDECO_TOKEN
-    }
+    headers = build_auth_headers()
     
     print(" Тестирую доступ с токеном...")
     
@@ -172,16 +244,23 @@ def format_event_message(event):
         return f"<b>BLOCKED ALERT</b>\nID: {event.get('sid', 'N/A')}"
 
 def main():
-    required = {
+    # Базовые переменные (Telegram)
+    required_basic = {
         "BOT_TOKEN": BOT_TOKEN,
         "CHAT_ID": CHAT_ID,
-        "IDECO_TOKEN": IDECO_TOKEN,
-        "SESSION_TOKEN": SESSION_TOKEN,
     }
-    missing = [name for name, val in required.items() if not val]
-    if missing:
-        print(" Отсутствуют переменные окружения: " + ", ".join(missing))
+    missing_basic = [name for name, val in required_basic.items() if not val]
+    if missing_basic:
+        print(" Отсутствуют переменные окружения: " + ", ".join(missing_basic))
         print(" Установите их перед запуском (секреты не должны быть в коде).")
+        return
+
+    # Для доступа к IDECO нужен либо IDECO_TOKEN+SESSION_TOKEN, либо IDECO_USERNAME+IDECO_PASSWORD
+    has_cookie_pair = bool(IDECO_TOKEN and SESSION_TOKEN)
+    has_credentials = bool(IDECO_USERNAME and IDECO_PASSWORD)
+    if not (has_cookie_pair or has_credentials):
+        print(" Нужен либо набор IDECO_TOKEN+SESSION_TOKEN (скопированный из браузера),")
+        print(" либо логин/пароль IDECO_USERNAME+IDECO_PASSWORD для автоматического логина.")
         return
 
     print(" Конфигурация загружена из переменных окружения.")
@@ -226,13 +305,31 @@ def main():
             }
             
             try:
+                # Каждый цикл пересобираем заголовки на случай обновления токена
+                current_headers = build_auth_headers()
+
                 response = session.get(
                     EVENTS_URL,
                     params=params,
-                    headers=headers,
+                    headers=current_headers,
                     timeout=30
                 )
-                
+
+                # Если сессия протухла — пробуем перелогиниться и повторить запрос
+                if response.status_code in (401, 403):
+                    print(" Сессия IDECO истекла, пробую заново залогиниться...")
+                    if login_and_update_session(session):
+                        current_headers = build_auth_headers()
+                        response = session.get(
+                            EVENTS_URL,
+                            params=params,
+                            headers=current_headers,
+                            timeout=30
+                        )
+                    else:
+                        print(" Перелогин не удался, пропускаю цикл.")
+                        continue
+
                 if response.status_code == 200:
                     data = response.json()
                     all_events = data.get('data', [])
