@@ -35,13 +35,7 @@ pip install requests
   - `SESSION_TOKEN` — значение этой cookie (например, `BBBB:CCCC`).
   - `IDECO_USERNAME` — логин пользователя IDECO (для автологина).
   - `IDECO_PASSWORD` — пароль пользователя IDECO (для автологина).
-  - `IDECO_LOGIN_URL` — (опционально) точный URL запроса логина; по умолчанию `BASE_URL + "/auth/login"`.
-
-Для работы достаточно:
-- либо актуальной пары `IDECO_TOKEN + SESSION_TOKEN` (скопированной из браузера),
-- либо `IDECO_USERNAME + IDECO_PASSWORD` (скрипт сам получит cookie при старте),
-- либо и того и другого (рекомендуется: сначала используем текущую cookie, при 401/403 — перелогин).
-
+  
 ## Пример запуска (PowerShell)
 
 ```powershell
@@ -50,17 +44,15 @@ $env:BOT_TOKEN      = "ВАШ_TELEGRAM_BOT_TOKEN"
 $env:CHAT_ID        = "ВАШ_CHAT_ID"
 
 # ==== IDECO: базовый адрес ====
-$env:BASE_URL       = "https://192.168.9.17:8443"
+$env:BASE_URL       = "https://localhost:8443"
 
-# ==== IDECO: cookie из браузера (опционально, но удобно) ====
+# ==== IDECO: cookie из браузера ====
 $env:IDECO_TOKEN    = "__Secure-ideco-AAAA"   # имя cookie
 $env:SESSION_TOKEN  = "BBBB:CCCC"            # значение cookie
 
 # ==== IDECO: логин/пароль для автологина ====
 $env:IDECO_USERNAME = "ВАШ_ЛОГИН_IDECO"
 $env:IDECO_PASSWORD = "ВАШ_ПАРОЛЬ_IDECO"
-# при необходимости:
-# $env:IDECO_LOGIN_URL = "https://ВАШ_ХОСТ/ПУТЬ_ЛОГИНА"
 
 python .\run_monitor.py
 ```
@@ -69,7 +61,7 @@ python .\run_monitor.py
 
 - Берутся события за последний час (`date_time` с оператором `date_range` = `["hour"]`).
 - Оставляются только события с `result = "blocked"`.
-- Отбрасываются noisy‑типы, перечисленные в словаре `NOISY_ALERTS` (телеметрия, DoH и т.д.).
+- Отбрасываются noisy‑типы, перечисленные в словаре `NOISY_ALERTS`.
 - Для новых (ещё не отправленных) событий формируется сообщение с:
   - критичностью (`severity`);
   - описанием (`description`);
