@@ -10,13 +10,12 @@ print("=" * 70)
 print("МОНИТОР СОБЫТИЙ С ТОКЕНОМ IDECO")
 print("=" * 70)
 
-# Конфигурация через переменные окружения, чтобы не хранить секреты в коде
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 BASE_URL = os.environ.get("BASE_URL", "https://192.168.9.17:8443")
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
 
-IDECO_TOKEN = os.environ.get("IDECO_TOKEN")  # cookie name=value или только имя cookie
+IDECO_TOKEN = os.environ.get("IDECO_TOKEN") 
 SESSION_TOKEN = os.environ.get("SESSION_TOKEN")
 
 
