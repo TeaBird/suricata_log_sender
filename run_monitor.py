@@ -20,7 +20,6 @@ SESSION_TOKEN = os.environ.get("SESSION_TOKEN")
 IDECO_USERNAME = os.environ.get("IDECO_USERNAME")
 IDECO_PASSWORD = os.environ.get("IDECO_PASSWORD")
 
-
 NOISY_ALERTS = {
     "Windows Telemetry": "Телеметрия Windows",
     "IP blocklist": "Черный список IP-адресов",
@@ -252,7 +251,7 @@ def main():
     missing_basic = [name for name, val in required_basic.items() if not val]
     if missing_basic:
         print(" Отсутствуют переменные окружения: " + ", ".join(missing_basic))
-        print(" Установите их перед запуском (секреты не должны быть в коде).")
+        print(" Необходимо установить перед запуском.")
         return
 
     # Для доступа к IDECO нужен либо IDECO_TOKEN+SESSION_TOKEN, либо IDECO_USERNAME+IDECO_PASSWORD
