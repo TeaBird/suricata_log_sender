@@ -30,7 +30,7 @@ pip install requests
   - `CHAT_ID` — ID чата/канала, куда слать уведомления.
 
 - **IDECO / Suricata**
-  - `BASE_URL` — базовый адрес веб‑интерфейса IDECO, по умолчанию `https://192.168.9.17:8443`.
+  - `BASE_URL` — базовый адрес веб‑интерфейса IDECO, по умолчанию `https://localhost:8443`.
   - `IDECO_TOKEN` — имя cookie сессии IDECO (например, `__Secure-ideco-AAAA`).
   - `SESSION_TOKEN` — значение этой cookie (например, `BBBB:CCCC`).
   - `IDECO_USERNAME` — логин пользователя IDECO (для автологина).
