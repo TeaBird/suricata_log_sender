@@ -13,6 +13,7 @@ print("=" * 70)
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 BASE_URL = os.environ.get("BASE_URL", "https://192.168.9.17:8443")
+CERT_PATH = r"D:\positive_staff\root_ca.crt"
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
 
 IDECO_TOKEN = os.environ.get("IDECO_TOKEN") 
@@ -69,7 +70,7 @@ def login_and_update_session(session):
             "password": IDECO_PASSWORD,
         }
 
-        response = session.post(login_url, data=payload, timeout=15, verify=False)
+        response = session.post(login_url, data=payload, timeout=15, verify=CERT_PATH)
 
         if response.status_code not in (200, 302):
             print(f" Логин не удался, HTTP {response.status_code}")
@@ -100,11 +101,8 @@ def login_and_update_session(session):
         print(f" Ошибка логина: {e}")
         return False
 
-
 def build_auth_headers():
-    """
-    Собирает заголовки авторизации из текущих значений SESSION_TOKEN и IDECO_TOKEN.
-    """
+
     headers = {}
     if SESSION_TOKEN:
         headers["Authorization"] = f"Bearer {SESSION_TOKEN}"
@@ -115,9 +113,8 @@ def build_auth_headers():
 
 def test_with_token():
     session = requests.Session()
-    session.verify = False
+    session.verify = CERT_PATH
 
-    # Если явных cookie нет, пробуем залогиниться по логину/паролю
     if not IDECO_TOKEN or not SESSION_TOKEN:
         print(" IDECO_TOKEN/SESSION_TOKEN не заданы, пробую логин по логину/паролю...")
         if not login_and_update_session(session):
@@ -147,7 +144,7 @@ def test_with_token():
         print(f"\n  Пробую метод: {test['method']}")
         try:
             test_session = test['session']
-            test_session.verify = False
+            test_session.verify = CERT_PATH
             
             for key, value in test['headers'].items():
                 test_session.headers[key] = value
