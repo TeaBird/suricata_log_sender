@@ -10,13 +10,14 @@ print("=" * 70)
 print("МОНИТОР СОБЫТИЙ С ТОКЕНОМ IDECO")
 print("=" * 70)
 
-BOT_TOKEN = "8286920710:AAHgOzxIRaOsBLRs5kK58Cmadns3CUvDDEs"
-CHAT_ID = "-5039280407"
-BASE_URL = "https://192.168.9.17:8443"
+# Конфигурация через переменные окружения, чтобы не хранить секреты в коде
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
+BASE_URL = os.environ.get("BASE_URL", "https://192.168.9.17:8443")
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
 
-IDECO_TOKEN = "__Secure-ideco-0702a658-0af4-4ef0-be9a-ff13711ea571"
-SESSION_TOKEN = "a3b2e574-ee7b-4aa4-adf8-0a323d2ad03a:1769576854"
+IDECO_TOKEN = os.environ.get("IDECO_TOKEN")  # cookie name=value или только имя cookie
+SESSION_TOKEN = os.environ.get("SESSION_TOKEN")
 
 
 NOISY_ALERTS = {
@@ -172,8 +173,19 @@ def format_event_message(event):
         return f"<b>BLOCKED ALERT</b>\nID: {event.get('sid', 'N/A')}"
 
 def main():
-    print(f"Использую токен: {IDECO_TOKEN}")
-    print(f"Значение: {SESSION_TOKEN[:20]}...")
+    required = {
+        "BOT_TOKEN": BOT_TOKEN,
+        "CHAT_ID": CHAT_ID,
+        "IDECO_TOKEN": IDECO_TOKEN,
+        "SESSION_TOKEN": SESSION_TOKEN,
+    }
+    missing = [name for name, val in required.items() if not val]
+    if missing:
+        print(" Отсутствуют переменные окружения: " + ", ".join(missing))
+        print(" Установите их перед запуском (секреты не должны быть в коде).")
+        return
+
+    print(" Конфигурация загружена из переменных окружения.")
     print(f"\n NOISY ALERTS (игнорирую):")
     for noisy_key, noisy_desc in NOISY_ALERTS.items():
         print(f"  • {noisy_key}")
