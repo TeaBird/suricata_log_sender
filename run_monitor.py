@@ -9,7 +9,7 @@ import requests
 print("=" * 70)
 print("монитор событий IDECO")
 print("=" * 70)
-
+#ELL TESTO COMMENTO
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 BASE_URL = os.environ.get("BASE_URL", "https://192.168.9.17:8443")

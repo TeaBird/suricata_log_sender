@@ -1,0 +1,11 @@
+{
+  "name": "My Config",
+  "version": "1.0.0",
+  "models": [
+    {
+      "title": "Llama 3.1 8b",
+      "provider": "ollama",
+      "model": "llama3.1:8b"
+    }
+  ]
+}
