@@ -27,6 +27,7 @@ NOISY_ALERTS = {
     "(o)DoH Query for dns.google": "DNS поверх HTTPS",
     "(o)DoH Query for doh.pub": "DNS поверх HTTPS",
     "GeoIP Poland": "GeoIP Страны Восточной Европы",
+    "GeoIP Czech Republic": "GeoIP Страны Восточной Европы",
 }
 
 def is_noisy_alert(event_description):
