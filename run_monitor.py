@@ -26,6 +26,7 @@ NOISY_ALERTS = {
     "IP blocklist": "Черный список IP-адресов",
     "(o)DoH Query for dns.google": "DNS поверх HTTPS",
     "(o)DoH Query for doh.pub": "DNS поверх HTTPS",
+    "GeoIP Poland": "GeoIP Страны Восточной Европы",
 }
 
 def is_noisy_alert(event_description):
