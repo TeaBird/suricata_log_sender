@@ -13,7 +13,7 @@ print("=" * 70)
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 BASE_URL = os.environ.get("BASE_URL", "https://192.168.9.17:8443")
-CERT_PATH = r"D:\positive_staff\root_ca.crt"
+CERT_PATH = r"D:/positive_staff/root_ca.crt"
 EVENTS_URL = f"{BASE_URL}/ips/alerts"
 
 IDECO_TOKEN = os.environ.get("IDECO_TOKEN") 
