@@ -28,6 +28,7 @@ NOISY_ALERTS = {
     "(o)DoH Query for doh.pub": "DNS поверх HTTPS",
     "GeoIP Poland": "GeoIP Страны Восточной Европы",
     "GeoIP Czech Republic": "GeoIP Страны Восточной Европы",
+    "AM INFO HTTP headers Cache-Control and Pragma detected": "Подключения к потенциально уязвимым web-приложениям",
 }
 
 def is_noisy_alert(event_description):
