@@ -1,4 +1,4 @@
-# Монитор событий IDECO <img width="80" height="80" alt="image" src="https://github.com/user-attachments/assets/efbd1b51-9482-4fba-bfca-231bca7a45d7" />
+# Монитор событий IDECO <img width="40" height="40" alt="image" src="https://github.com/user-attachments/assets/efbd1b51-9482-4fba-bfca-231bca7a45d7" />
 
 Небольшой скрипт для опроса IDECO/Suricata по API `/ips/alerts`, фильтрации шумных событий и отправки уведомлений о реально заблокированных (`result = blocked`) срабатываниях в Telegram.
 
